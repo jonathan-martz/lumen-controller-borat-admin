@@ -2,12 +2,12 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::put('/repo/edit', [
+Route::put('/package/edit', [
     'middleware' => ['auth', 'xss', 'https'],
     'uses' => 'App\Http\Controllers\BoratAdminController@edit'
 ]);
 
-Route::delete('/repo/delete', [
+Route::delete('/package/delete', [
     'middleware' => ['auth', 'xss', 'https'],
     'uses' => 'App\Http\Controllers\BoratAdminController@delete'
 ]);
