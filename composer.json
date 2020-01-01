@@ -1,0 +1,35 @@
+{
+    "name": "jonathan-martz/lumen-controller-borat-admin",
+    "description": "Php Lumen Borat Admin Controller",
+    "license": "MIT",
+    "require": {
+        "php": "^7.3|^7.4",
+        "laravel/lumen-framework": "^6.3",
+        "jonathan-martz/lumen-controller": "^0.2",
+        "jonathan-martz/lumen-controller-borat": "^0.2",
+        "jonathan-martz/lumen-middelware-xss": "^0.1",
+        "jonathan-martz/lumen-middelware-https": "^0.1",
+        "jonathan-martz/lumen-middelware-auth": "^0.2"
+    },
+    "autoload": {
+        "classmap": [
+            "controller/",
+            "provider/"
+        ]
+    },
+    "authors": [
+        {
+            "name": "Jonathan Martz",
+            "email": "composer@jmartz.de",
+            "homepage": "https://www.jmartz.de",
+            "role": "Developer"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "App\\Providers\\BoratAdminProvider"
+            ]
+        }
+    }
+}
