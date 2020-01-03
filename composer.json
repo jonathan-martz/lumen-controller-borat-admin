@@ -9,7 +9,9 @@
         "jonathan-martz/lumen-controller-borat": "^0.2",
         "jonathan-martz/lumen-middelware-xss": "^0.1",
         "jonathan-martz/lumen-middelware-https": "^0.1",
-        "jonathan-martz/lumen-middelware-auth": "^0.2"
+        "jonathan-martz/lumen-middelware-auth": "^0.2",
+        "ext-json": "*",
+        "ext-curl": "*"
     },
     "autoload": {
         "classmap": [

@@ -2,9 +2,19 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::put('/package/edit', [
+Route::post('/package/add', [
     'middleware' => ['auth', 'xss', 'https'],
-    'uses' => 'App\Http\Controllers\BoratAdminController@edit'
+    'uses' => 'App\Http\Controllers\BoratAdminController@add'
+]);
+
+Route::post('/package/add/confirm', [
+    'middleware' => ['auth', 'xss', 'https'],
+    'uses' => 'App\Http\Controllers\BoratAdminController@confirmAdd'
+]);
+
+Route::put('/package/update', [
+    'middleware' => ['auth', 'xss', 'https'],
+    'uses' => 'App\Http\Controllers\BoratAdminController@update'
 ]);
 
 Route::delete('/package/delete', [

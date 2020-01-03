@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use function json_decode;
 
 /**
  * Class BoratAdminController
@@ -12,11 +13,173 @@ use Illuminate\Validation\ValidationException;
  */
 class BoratAdminController extends Controller
 {
+    public $data = [];
+
+    public function checkComposerJson(string $url)
+    {
+        $repo = $this->getRepoByUrl($url);
+        $owner = $this->getOwnerByUrl($url);
+
+        $this->data['module'] = $repo;
+        $this->data['vendor'] = $owner;
+        $this->data['repo'] = $url;
+
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, 'https://api.github.com/repos/' . $owner . '/' . $repo . '/contents/composer.json');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'flagbit rockt');
+        $output = curl_exec($ch);
+        curl_close($ch);
+
+        $data = json_decode($output);
+
+        $data = (array)$data;
+
+        if(!empty($data['message']) && $data['message'] == 'Not Found') {
+            return false;
+        }
+        return $data['download_url'];
+    }
+
+    public function loadComposerJson(string $url): array
+    {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'flagbit rockt');
+        $output = curl_exec($ch);
+        curl_close($ch);
+
+        return (array)json_decode($output);
+    }
+
+    public function getRepoByUrl(string $url): string
+    {
+        $url = str_replace('git@github.com:', '', $url);
+        $fullname = explode('/', str_replace('.git', '', $url));
+
+        if(!empty($fullname[1])) {
+            return $fullname[1];
+        }
+
+        return 'unknown';
+    }
+
+    public function getOwnerByUrl(string $url): string
+    {
+        $url = str_replace('git@github.com:', '', $url);
+        $fullname = explode('/', str_replace('.git', '', $url));
+
+        if(!empty($fullname[0])) {
+            return $fullname[0];
+        }
+
+        return 'unknown';
+    }
+
+
+    public function confirmAdd()
+    {
+        $validation = $this->validate($this->request, [
+            'result' => 'required|array',
+            'result.module' => 'required|string',
+            'result.vendor' => 'required|string',
+            'result.fullname' => 'required|string',
+            'result.repo' => 'required|string',
+            'result.type' => 'required|string',
+        ]);
+
+        if($this->request->user()->getRoleName() === 'admin') {
+
+            $result = DB::table('packages')->insert($this->request->input('result'));
+
+            if($result) {
+                $this->addMessage('success', 'Package added.');
+            }
+            else {
+                $this->addMessage('error', 'Upps something went wrong.');
+            }
+        }
+        else {
+            $this->addMessage('error', 'Only admins can add Packages!');
+        }
+
+
+        return $this->getResponse();
+    }
+
     /**
      * @return JsonResponse
      * @throws ValidationException
      */
-    public function edit()
+    public function add()
+    {
+        $validation = $this->validate($this->request, [
+            'url' => 'required',
+            'type' => 'required'
+        ]);
+
+        if($this->request->user()->getRoleName() === 'admin') {
+
+            if($this->request->input('type') == 'public' || $this->request->input('type') == 'private' || $this->request->input('type') == 'proxy') {
+
+                $check['repo'] = DB::table('packages')->where('repo', '=', $this->request->input('url'));
+
+                if($check['repo']->count() === 0) {
+                    $exists = $this->checkComposerJson($this->request->input('url'));
+
+                    if($exists) {
+                        $data = $this->loadComposerJson($exists);
+
+                        if(!is_array($data)) {
+                            $this->addMessage('error', 'Package doesnt contain composer.json');
+                        }
+                        else {
+                            if(!empty($data['name'])) {
+                                $check['fullname'] = DB::table('packages')->where('repo', '=', $data['name']);
+
+                                if($check['fullname']->count() === 0) {
+
+                                    $insert = [
+                                        'vendor' => $this->data['vendor'],
+                                        'module' => $this->data['module'],
+                                        'fullname' => $data['name'],
+                                        'repo' => $this->data['repo'],
+                                        'type' => $this->request->input('type'),
+                                    ];
+
+                                    $this->addResult('confirm', $insert);
+                                }
+                                else {
+                                    $this->addMessage('error', 'Package was Name already exists. (Id: ' . $check['fullname']->first()->id . ')');
+                                }
+                            }
+                            else {
+                                $this->addMessage('error', 'Package has no Name.');
+                            }
+                        }
+                    }
+                    else {
+                        $this->addMessage('error', 'File doesnt exists.');
+                    }
+                }
+                else {
+                    $this->addMessage('error', 'Repo with already exists. (Id: ' . $check['repo']->first()->id . ')');
+                }
+            }
+        }
+        else {
+            $this->addMessage('error', 'Type doesnt exists.');
+        }
+
+        return $this->getResponse();
+    }
+
+    /**
+     * @return JsonResponse
+     * @throws ValidationException
+     */
+    public function update()
     {
         $validation = $this->validate($this->request, []);
 
