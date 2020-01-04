@@ -13,8 +13,15 @@ use function json_decode;
  */
 class BoratAdminController extends Controller
 {
+    /**
+     * @var array
+     */
     public $data = [];
 
+    /**
+     * @param string $url
+     * @return bool|mixed
+     */
     public function checkComposerJson(string $url)
     {
         $repo = $this->getRepoByUrl($url);
@@ -24,9 +31,12 @@ class BoratAdminController extends Controller
         $this->data['vendor'] = $owner;
         $this->data['repo'] = $url;
 
+        $requestUrl = str_replace(' ', '', 'https://api.github.com/repos/' . $owner . '/' . $repo . '/contents/composer.json');
+
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, 'https://api.github.com/repos/' . $owner . '/' . $repo . '/contents/composer.json');
+        curl_setopt($ch, CURLOPT_URL, $requestUrl);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+
         curl_setopt($ch, CURLOPT_USERAGENT, 'flagbit rockt');
         $output = curl_exec($ch);
         curl_close($ch);
@@ -41,6 +51,10 @@ class BoratAdminController extends Controller
         return $data['download_url'];
     }
 
+    /**
+     * @param string $url
+     * @return array
+     */
     public function loadComposerJson(string $url): array
     {
         $ch = curl_init();
@@ -53,6 +67,10 @@ class BoratAdminController extends Controller
         return (array)json_decode($output);
     }
 
+    /**
+     * @param string $url
+     * @return string
+     */
     public function getRepoByUrl(string $url): string
     {
         $url = str_replace('git@github.com:', '', $url);
@@ -65,6 +83,10 @@ class BoratAdminController extends Controller
         return 'unknown';
     }
 
+    /**
+     * @param string $url
+     * @return string
+     */
     public function getOwnerByUrl(string $url): string
     {
         $url = str_replace('git@github.com:', '', $url);
@@ -78,6 +100,10 @@ class BoratAdminController extends Controller
     }
 
 
+    /**
+     * @return JsonResponse
+     * @throws ValidationException
+     */
     public function confirmAdd()
     {
         $validation = $this->validate($this->request, [
@@ -119,14 +145,16 @@ class BoratAdminController extends Controller
             'type' => 'required'
         ]);
 
+        $url = trim($this->request->input('url'));
+
         if($this->request->user()->getRoleName() === 'admin') {
 
             if($this->request->input('type') == 'public' || $this->request->input('type') == 'private' || $this->request->input('type') == 'proxy') {
 
-                $check['repo'] = DB::table('packages')->where('repo', '=', $this->request->input('url'));
+                $check['repo'] = DB::table('packages')->where('repo', '=', $url);
 
                 if($check['repo']->count() === 0) {
-                    $exists = $this->checkComposerJson($this->request->input('url'));
+                    $exists = $this->checkComposerJson($url);
 
                     if($exists) {
                         $data = $this->loadComposerJson($exists);
